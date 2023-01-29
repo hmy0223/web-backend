@@ -6,6 +6,8 @@ import (
 	"log"
 	"os"
 	"sort"
+	"strconv"
+	"strings"
 
 	"github.com/gocolly/colly"
 )
@@ -25,7 +27,10 @@ type CardDetail struct {
 }
 
 const domain = "www.beckett.com"
-const targetURL = "https://www.beckett.com/grading/card-lookup?item_type=BGS&item_id=15310682&submit=Submit&submit=Submit"
+const baseURL = "https://www.beckett.com/grading/card-lookup?item_type=BGS&item_id="
+const urlRequest = "&submit=Submit&submit=Submit"
+const MIN_ITEM_ID = 15310682
+const MAX_ITEM_ID = 15310685
 
 var csvHeader = []string{
 	"SetName",
@@ -50,6 +55,7 @@ var file *os.File
 
 func Crawl() {
 	writer := initializeCsvWriter()
+	urlList := generateUrlByItemId()
 
 	// unmount the file event
 	defer file.Close()
@@ -71,9 +77,10 @@ func Crawl() {
 
 		writer.Write(data)
 	})
+	for _, val := range urlList {
+		_colly.Visit(val)
+	}
 
-	// dynamic serial number will be added later
-	_colly.Visit(targetURL)
 }
 
 func initializeCsvWriter() *csv.Writer {
@@ -105,4 +112,15 @@ func sortMapByIndex(newMap map[int]string) []string {
 	}
 
 	return row
+}
+
+func generateUrlByItemId() []string {
+	arr := []string{}
+	// may have performance issue T_T
+	for i := MIN_ITEM_ID; i < MAX_ITEM_ID; i++ {
+		str := []string{baseURL, strconv.Itoa(i), urlRequest}
+		link := strings.Join(str, "")
+		arr = append(arr, link)
+	}
+	return arr
 }
