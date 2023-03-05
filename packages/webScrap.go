@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gocolly/colly"
 )
@@ -30,7 +31,7 @@ const domain = "www.beckett.com"
 const baseURL = "https://www.beckett.com/grading/card-lookup?item_type=BGS&item_id="
 const urlRequest = "&submit=Submit&submit=Submit"
 const MIN_ITEM_ID = 15310682
-const MAX_ITEM_ID = 15310685
+const MAX_ITEM_ID = 15310782
 
 var csvHeader = []string{
 	"SetName",
@@ -57,10 +58,6 @@ func Crawl() {
 	writer := initializeCsvWriter()
 	urlList := generateUrlByItemId()
 
-	// unmount the file event
-	defer file.Close()
-	defer writer.Flush()
-
 	_colly.OnRequest(func(r *colly.Request) {
 		fmt.Println("Visiting: ", r.URL.String())
 	})
@@ -74,10 +71,15 @@ func Crawl() {
 		})
 
 		data := sortMapByIndex(cardMap)
+		fmt.Println("site card detail", data)
 
 		writer.Write(data)
+		// unmount the file event
+		defer file.Close()
+		defer writer.Flush()
 	})
 	for _, val := range urlList {
+		time.Sleep(4 * time.Second)
 		_colly.Visit(val)
 	}
 

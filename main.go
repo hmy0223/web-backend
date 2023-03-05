@@ -5,14 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	_ "github.com/go-sql-driver/mysql"
 
-	// webScrapper "web-backend/packages"
-	helper "web-backend/packages"
+	webScrapper "web-backend/packages"
 )
 
 type Post struct {
@@ -40,7 +38,7 @@ func init() {
 
 	dbSource := fmt.Sprintf("root:%s@tcp(%s:%s)/%s?charset=utf8", dbPass, dbHost, dbPort, dbName)
 	db, err = sql.Open("mysql", dbSource)
-	helper.Catch(err)
+	catch(err)
 }
 
 func routers() *chi.Mux {
@@ -54,24 +52,17 @@ func CreateMovie(w http.ResponseWriter, r *http.Request) {
 	json.NewDecoder(r.Body).Decode(&post)
 
 	query, err := db.Prepare("Insert movies SET title=?, genre=?, director=?, release_year=?")
-	helper.Catch(err)
+	catch(err)
 
 	_, er := query.Exec(post.Title, post.Genre, post.Director, post.Release_year)
-	helper.Catch(er)
+	catch(er)
 	defer query.Close()
 
-	helper.RespondwithJSON(w, http.StatusCreated, map[string]string{"message": "successfully created"})
-}
-
-// Logger return log message
-func Logger() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println(time.Now(), r.Method, r.URL)
-		router.ServeHTTP(w, r) // dispatch the request
-	})
+	respondwithJSON(w, http.StatusCreated, map[string]string{"message": "successfully created"})
 }
 
 func main() {
-	routers()
+	go webScrapper.Crawl()
+	go routers()
 	http.ListenAndServe(":8005", Logger())
 }
